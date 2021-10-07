@@ -9,6 +9,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import math
 import numpy as np
+from sklearn.linear_model import LinearRegression
+import statsmodels.api as sm
  
 ayx = yf.Ticker('AYX')
 ayx.info
@@ -45,3 +47,33 @@ plt.hist(a, int(round(len(a)/10,0)*5))
 
 spy = get_closing_prices('SPY')
 beta = np.cov(a,spy)[0,1]/np.var(a)
+
+def beta(stock, spy):
+    return np.cov(stock,spy)[0,1]/np.var(stock)
+
+spy= get_closing_prices('spy', period = 'max',interval = '1d')
+spy_df = pd.DataFrame(spy)
+spy_df= spy_df.reset_index()
+spy_df['dayofweek'] = spy_df['Date'].dt.day_name()
+spy_df['month'] = spy_df['Date'].dt.month_name()
+spy_df['year'] = spy_df.apply(lambda x: x.Date.year,axis=1)
+spy_df['year']=spy_df.apply(lambda x: x.Date.year-min(spy_df.year),axis=1)
+spy_df = pd.get_dummies(spy_df)
+X = spy_df[['year', 'dayofweek_Friday', 'dayofweek_Monday',
+       'dayofweek_Thursday', 'dayofweek_Tuesday', 'dayofweek_Wednesday',
+       'month_April', 'month_August', 'month_December', 'month_February',
+       'month_January', 'month_July', 'month_June', 'month_March', 'month_May',
+       'month_November', 'month_October', 'month_September']]
+Y = spy_df.Close
+lr = LinearRegression()
+lr.fit(X,Y)
+[i for i in zip(X.columns, lr.coef_)]
+
+X2 = sm.add_constant(X)
+est = sm.OLS(Y,X2)
+est2 = est.fit()
+print(est2.summary())
+
+
+{x:get_closing_prices(x,period = '5y', interval = '1d') for x in ['SPY','GOLD']}
+beta = beta(a['GOLD'], a['SPY'])
